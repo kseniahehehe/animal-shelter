@@ -1,0 +1,143 @@
+
+А. Авторизация и регистрация
+
+1. POST /api/register — создание аккаунта.
+	• Принимает JSON: { "name": "Елена", "email": "elena@mail.ru", "password": "123" }
+	• Возвращает JSON: { "token": "строка_токена", "email": "elena@mail.ru", "role": "user" }
+2. POST /api/login — вход в систему.
+	• Принимает JSON: { "email": "elena@mail.ru", "password": "123" }
+	• Возвращает JSON: { "token": "строка_токена", "email": "elena@mail.ru", "role": "user" }
+	• Примечание: если входит администратор, сервер должен вернуть "role": "admin" — фронтенд автоматически перенаправит его в панель /admin.
+
+Б. Профиль пользователя
+
+3. GET /api/profile?email=<email> — загрузка данных личного кабинета.
+Возвращает JSON:
+{
+  "profile": {
+    "firstName": "Елена",
+    "lastName": "Соколова",
+    "birthDate": "1995-05-12",
+    "workField": "IT",
+    "hobbies": "Бег, чтение",
+    "about": "Текст о себе",
+    "avatar": "строка Base64 или URL картинки"
+  },
+  "contacts": [
+    {
+      "id": 1,
+      "type": "email",
+      "value": "elena@mail.ru",
+      "subtitle": "Почта, основная: письма, чеки и вход",
+      "status": "verified",
+      "isPrimary": true
+    }
+  ],
+  "quizResults": [
+    { "question": "Текст вопроса", "answer": "Ответ пользователя" }
+  ],
+  "favorites": [
+    {
+      "id": 1,
+      "name": "Люпин",
+      "age": "1 год",
+      "description": "Мальчик, центр «Мокрый нос»",
+      "guardians": "3 из 5 опекунов",
+      "image": "/api/images/lupin.jpg"
+    }
+  ]
+}
+
+4. PUT /api/profile — сохранение изменений профиля и дополнительных почт/телефонов.
+	• Принимает JSON: { "email": "elena@mail.ru", "profile": { ... }, "contacts": [ ... ] }
+
+
+В. Опрос (Анкета для LLM)
+
+5. GET /api/questions — получение списка вопросов для анкеты из БД.
+	• Если у вопроса передан массив "options", на экране появятся кнопки выбора.
+	• Если "options" не передан (или пустой []), откроется текстовое поле для свободного ответа.
+Пример ответа от сервера:json
+[
+  {
+    "id": 1,
+    "text": "Кого вы хотите завести?",
+    "options": ["Собаку", "Кошку"]
+  },
+  {
+    "id": 2,
+    "text": "Где вы живете?",
+    "options": ["В квартире", "В частном доме"]
+  },
+  {
+    "id": 3,
+    "text": "Расскажите подробнее о вашем образе жизни и опыте общения с животными"
+  }
+]
+6. POST /api/quiz — сохранение ответов пользователя.
+	• Принимает JSON:json
+{
+  "email": "elena@mail.ru",
+  "answers": [
+    { "question": "Какой образ жизни вы ведете?", "answer": "Работаю из дома" }
+  ]
+}
+
+Г. Подбор животных (Лента + LLM)
+
+7. GET /api/pets?email=<email> — список животных, подобранных пользователю (с учетом его анкеты в LLM).
+	• Возвращает JSON:json
+[
+  {
+    "id": 1,
+    "name": "Люпин",
+    "age": "1 год",
+    "description": "Мальчик, центр «Мокрый нос», Брёхово",
+    "guardians": "3 из 5 опекунов",
+    "image": "/api/images/lupin.jpg",
+    "ai_reason": "Необязательное поле: комментарий от LLM, почему питомец подходит"
+  }
+]
+
+
+Д. Избранное
+
+8. GET /api/favorites?email=<email> — получить список избранных животных (структура объектов как в /api/pets).
+9. POST /api/favorites — добавить животное в избранное.
+	• Принимает JSON: { "email": "elena@mail.ru", "pet_id": 1 }
+10. DELETE /api/favorites/<pet_id>?email=<email> — убрать животное из избранного.
+
+
+
+Е. Заявки «Приютить» (Панель администратора)
+
+11. POST /api/requests — отправка заявки пользователем из модального окна.
+	• Принимает JSON:json
+{
+  "pet_id": 1,
+  "applicant_name": "Иван",
+  "contact": "+7 999 123-45-67",
+  "contact_method": "Telegram"
+}
+
+12. GET /api/requests — получить все заявки для страницы /admin.
+	• Возвращает JSON:json
+[
+  {
+    "id": 10,
+    "petId": 1,
+    "petName": "Люпин",
+    "petDescription": "Мальчик, центр «Мокрый нос»",
+    "petImage": "/api/images/lupin.jpg",
+    "applicantName": "Иван",
+    "contact": "+7 999 123-45-67",
+    "contactMethod": "Telegram",
+    "status": "new",
+    "createdAt": "22.11.2026, 12:00"
+  }
+]
+
+13. PATCH /api/requests/<id> — смена статуса заявки администратором.
+	• Принимает JSON: { "status": "scheduled" } (значения: "new", "contacted", "scheduled", "rejected").
+
+14. DELETE /api/requests/<id> — удаление заявки администратором.
