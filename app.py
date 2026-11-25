@@ -51,7 +51,6 @@ class UserContact(db.Model):
     status = db.Column(db.String(20), default="pending") # "verified" или "pending"
     is_primary = db.Column(db.Boolean, default=False)
 
-
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.String(300), nullable=False)
@@ -62,7 +61,6 @@ class QuizResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_email = db.Column(db.String(100), unique=True, nullable=False)
     answers_json = db.Column(db.Text, nullable=False)
-
 
 class Pet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -212,7 +210,6 @@ def handle_profile():
         db.session.commit()
         return jsonify({"status": "saved"})
 # ==================== ОПРОС ====================
-
 @app.route("/api/questions", methods=["GET"])
 def get_questions():
     items = Question.query.all()
@@ -238,7 +235,6 @@ def save_quiz():
 
     db.session.commit()
     return jsonify({"status": "ok"})
-
 
 # ==================== ПОДБОР ПИТОМЦЕВ + МЕСТО ДЛЯ LLM ====================
 # максим???????????????????????
