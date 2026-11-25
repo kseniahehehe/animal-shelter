@@ -1,5 +1,5 @@
 import os
-from datetime import temedelta
+from datetime import timedelta
 from flask_jwt_extended import JWTManager, create_access_token
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -21,17 +21,66 @@ db = SQLAlchemy(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), default="user")
+    name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), default="")
+    birth_date = db.Column(db.String(20), default="")
+    work_field = db.Column(db.String(100), default="")
+    hobbies = db.Column(db.String(200), default="")
+    about = db.Column(db.Text, default="")
+    avatar = db.Column(db.Text, default="")
     
-
-class Questionnaire(db.Model):
+class UserContact(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    animal = db.Column(db.String(20), nullable = False)
-    home = db.Column(db.String(20), nullable = False)
+    user_email = db.Column(db.String(100), nullable=False)
+    type = db.Column(db.String(10), nullable=False) 
+    value = db.Column(db.String(100), nullable=False)
+    subtitle = db.Column(db.String(100), default="")
+    status = db.Column(db.String(20), default="pending") 
+    is_primary = db.Column(db.Boolean, default=False)
 
+class Question(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.String(300), nullable=False)
+    options_json = db.Column(db.Text, default="[]")
+    
+class QuizResult(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_email = db.Column(db.String(100), unique=True, nullable=False)
+    answers_json = db.Column(db.Text, nullable=False)
+    
+class Pet(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    age = db.Column(db.String(30), nullable=False)
+    description = db.Column(db.String(200), nullable=False)
+    guardians = db.Column(db.String(50), nullable=False)
+    image = db.Column(db.String(300), nullable=False)
+
+class Favorite(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_email = db.Column(db.String(100), nullable=False)
+    pet_id = db.Column(db.Integer, db.ForeignKey("pet.id"), nullable=False)
+    
+class AdoptRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    pet_id = db.Column(db.Integer, db.ForeignKey("pet.id"), nullable=False)
+    applicant_name = db.Column(db.String(100), nullable=False)
+    contact = db.Column(db.String(100), nullable=False)
+    contact_method = db.Column(db.String(30), nullable=False)
+    status = db.Column(db.String(20), default="new")
+    created_at = db.Column(db.String(30), nullable=False)
+
+
+@app.route("/api/health", methods=["GET"])
+def health():
+    return jsonify({
+        "status": "ok",
+        "message": "Flask работает"
+    })
+ 
  
 @app.route("/")
 def home():
@@ -70,19 +119,26 @@ def login():
         return jsonify({"error": "Неверный email или пароль"}), 401
     if not check_password_hash(user.password_hash, password):
         return jsonify({"error": "Неверный email или пароль"}), 401    
-    return 
-
-@app.route("/submit", methods=["POST"])
-def submit():
-    animal = request.form["animal"]
-    home = request.form["home"]
-    if animal not in ["cat", "dog"] or home not in ["apartment", "house"]:
-        return "wth", 400
-    new_response = Questionnaire(animal=animal, home=home)
-    db.session.add(new_response)
-    db.session.commit()
     
-    return f"u want a {animal} and live in {home}"
+    token = create_access_token(identity=str(user.id))
+    return jsonify({
+        "token": token,
+        "email": user.email,
+        "role": user.role
+    }), 200
+    
+    
+    @app.route ("api/profile", methods=["GET", "PUT"])
+    def handle_profile():
+        if request.method == "GET":
+            email = request.args.get("email")
+            user = User.query.filter_by(user_email=email).first()
+            if not user:
+                return jsonify({"error": "пользователь не найден"}), 404
+            
+    
+
+
 
 if __name__ == "__main__":
     with app.app_context():
